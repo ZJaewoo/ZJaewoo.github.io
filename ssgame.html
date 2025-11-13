@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>단어 바구니 게임</title>
+  <style>
+    body {margin:0; background:#f0effd;}
+    canvas {display:block; margin:auto; background:#e6e6fa;}
+    #result {margin-top:20px; font-size:24px; font-weight:bold; text-align:center;}
+    #timer {font-size:22px; font-weight:bold; text-align:right; margin:10px;}
+  </style>
+</head>
+<body>
+<div id="timer"></div>
+<canvas id="gameCanvas" width="500" height="700"></canvas>
+<div id="result"></div>
+<script>
+// 단어 목록
+const words = [
+  "책", "분류", "정리", "서류", "컴퓨터", "행정",
+  "카메라", "배우", "영상",
+  "지도", "세계", "길",
+  "유물", "토기", "탐색",
+  "마음", "뇌", "심리",
+  "사회", "사람", "공동체",
+  "국제", "교류", "정치"
+];
+
+// 결과 학과 분류
+const majors = [
+  { words: ["책", "분류", "정리"], text: "문헌정보학과" },
+  { words: ["서류", "컴퓨터", "행정"], text: "행정학과" },
+  { words: ["카메라", "배우", "영상"], text: "미디어커뮤니케이션학과" },
+  { words: ["지도", "세계", "길"], text: "지리학과" },
+  { words: ["유물", "토기", "탐색"], text: "문화인류고고학과" },
+  { words: ["마음", "뇌", "심리"], text: "심리학과" },
+  { words: ["사회", "사람", "공동체"], text: "사회학과" },
+  { words: ["국제", "교류", "정치"], text: "정치외교학과" }
+];
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// 바구니 변수
+let basketX = 220;
+const basketY = 660;
+const basketW = 70;
+const basketH = 26;
+
+// 단어 오브젝트 최대 5개
+let fallingWords = [];
+const maxWords = 5;
+
+// 단어별 받은 개수 기록
+let wordCounts = {};
+words.forEach(word => wordCounts[word] = 0);
+
+// 타이머
+let startTime = null;
+const totalTime = 30; // 진행시간(초)
+let timerId;
+let isGameOver = false;
+
+// 키 입력
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') basketX -= 30;
+  else if (e.key === 'ArrowRight') basketX += 30;
+  basketX = Math.max(0, Math.min(canvas.width - basketW, basketX));
+});
+
+// 단어 떨어뜨리기
+function addWord() {
+  if (fallingWords.length < maxWords) {
+    let word = words[Math.floor(Math.random() * words.length)];
+    fallingWords.push({
+      word,
+      x: Math.random() * (canvas.width - 70),
+      y: -30
+    });
