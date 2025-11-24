@@ -1,79 +1,236 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>단어 바구니 게임</title>
+  <meta charset="UTF-8" />
+  <title>단어 바구니 게임 - 세련된 UI와 겹침 방지</title>
   <style>
-    body {margin:0; background:#f0effd;}
-    canvas {display:block; margin:auto; background:#e6e6fa;}
-    #result {margin-top:20px; font-size:24px; font-weight:bold; text-align:center;}
-    #timer {font-size:22px; font-weight:bold; text-align:right; margin:10px;}
+    body {
+      margin: 0;
+      background: linear-gradient(120deg, #a8edea, #fed6e3);
+      font-family: 'Spoqa Han Sans', 'Malgun Gothic', Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto 0 auto;
+      background: #f9f9ff;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+    #timer, #result {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px #ccc;
+      padding: 10px 20px;
+      margin: 10px auto;
+      width: fit-content;
+      font-weight: 700;
+      font-size: 20px;
+      text-align: center;
+    }
+    #container {
+      max-width: 520px;
+      margin: 0 auto 20px auto;
+    }
+    #startBtn {
+      display: block;
+      margin: 10px auto 30px auto;
+      background: #6c63ff;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 40px;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(108, 99, 255, 0.6);
+      transition: background-color 0.3s ease;
+    }
+    #startBtn:hover {
+      background: #5a54d6;
+    }
   </style>
 </head>
 <body>
-<div id="timer"></div>
-<canvas id="gameCanvas" width="500" height="700"></canvas>
-<div id="result"></div>
-<script>
-// 단어 목록
-const words = [
-  "책", "분류", "정리", "서류", "컴퓨터", "행정",
-  "카메라", "배우", "영상",
-  "지도", "세계", "길",
-  "유물", "토기", "탐색",
-  "마음", "뇌", "심리",
-  "사회", "사람", "공동체",
-  "국제", "교류", "정치"
-];
+  <div id="container">
+    <div id="timer">남은 시간: 30초</div>
+    <button id="startBtn">게임 시작</button>
+    <canvas id="gameCanvas" width="500" height="700"></canvas>
+    <div id="result"></div>
+  </div>
+  <script>
+    var words = [
+      "책", "분류", "정리", "서류", "컴퓨터", "행정",
+      "카메라", "배우", "영상",
+      "지도", "세계", "길",
+      "유물", "토기", "탐색",
+      "마음", "뇌", "심리",
+      "사회", "사람", "공동체",
+      "국제", "교류", "정치"
+    ];
 
-// 결과 학과 분류
-const majors = [
-  { words: ["책", "분류", "정리"], text: "문헌정보학과" },
-  { words: ["서류", "컴퓨터", "행정"], text: "행정학과" },
-  { words: ["카메라", "배우", "영상"], text: "미디어커뮤니케이션학과" },
-  { words: ["지도", "세계", "길"], text: "지리학과" },
-  { words: ["유물", "토기", "탐색"], text: "문화인류고고학과" },
-  { words: ["마음", "뇌", "심리"], text: "심리학과" },
-  { words: ["사회", "사람", "공동체"], text: "사회학과" },
-  { words: ["국제", "교류", "정치"], text: "정치외교학과" }
-];
+    var majors = [
+      { w: ["책", "분류", "정리"], t: "문헌정보학과" },
+      { w: ["서류", "컴퓨터", "행정"], t: "행정학과" },
+      { w: ["카메라", "배우", "영상"], t: "미디어커뮤니케이션학과" },
+      { w: ["지도", "세계", "길"], t: "지리학과" },
+      { w: ["유물", "토기", "탐색"], t: "문화인류고고학과" },
+      { w: ["마음", "뇌", "심리"], t: "심리학과" },
+      { w: ["사회", "사람", "공동체"], t: "사회학과" },
+      { w: ["국제", "교류", "정치"], t: "정치외교학과" }
+    ];
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+    var canvas = document.getElementById("gameCanvas");
+    var ctx = canvas.getContext("2d");
 
-// 바구니 변수
-let basketX = 220;
-const basketY = 660;
-const basketW = 70;
-const basketH = 26;
+    var basketX = 215;
+    var basketY = 650;
+    var basketW = 70;
+    var basketH = 32;
+    var fallingWords = [];
+    var maxWords = 5;
+    var wordCounts = {};
+    for (var i = 0; i < words.length; i++) wordCounts[words[i]] = 0;
+    var totalTime = 30;
+    var startTime;
+    var isGameOver = false;
+    var minDist = 60; // 단어 최소 거리
 
-// 단어 오브젝트 최대 5개
-let fallingWords = [];
-const maxWords = 5;
-
-// 단어별 받은 개수 기록
-let wordCounts = {};
-words.forEach(word => wordCounts[word] = 0);
-
-// 타이머
-let startTime = null;
-const totalTime = 30; // 진행시간(초)
-let timerId;
-let isGameOver = false;
-
-// 키 입력
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft') basketX -= 30;
-  else if (e.key === 'ArrowRight') basketX += 30;
-  basketX = Math.max(0, Math.min(canvas.width - basketW, basketX));
-});
-
-// 단어 떨어뜨리기
-function addWord() {
-  if (fallingWords.length < maxWords) {
-    let word = words[Math.floor(Math.random() * words.length)];
-    fallingWords.push({
-      word,
-      x: Math.random() * (canvas.width - 70),
-      y: -30
+    window.addEventListener("keydown", function (e) {
+      if (isGameOver) return;
+      if (e.key === "ArrowLeft") basketX -= 60;
+      else if (e.key === "ArrowRight") basketX += 60;
+      if (basketX < 0) basketX = 0;
+      if (basketX > canvas.width - basketW) basketX = canvas.width - basketW;
     });
+
+    function addWord() {
+      if (fallingWords.length < maxWords) {
+        let tries = 12;
+        let xpos, overlap;
+        do {
+          xpos = Math.random() * (canvas.width - 70);
+          overlap = false;
+          for (let w of fallingWords) {
+            if (Math.abs(w.x - xpos) < minDist) {
+              overlap = true;
+              break;
+            }
+          }
+        } while (overlap && --tries > 0);
+
+        var w = words[Math.floor(Math.random() * words.length)];
+        fallingWords.push({ word: w, x: xpos, y: 25 + Math.random() * 15 });
+      }
+    }
+
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 바구니 (타원 + 그림자)
+      ctx.save();
+      ctx.shadowColor = "#bbb";
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.ellipse(
+        basketX + basketW / 2,
+        basketY + basketH / 2,
+        basketW / 2,
+        basketH / 2,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = "#ecc67a";
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = "#444";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 단어 출력
+      for (var i = 0; i < fallingWords.length; i++) {
+        ctx.font = "bold 32px 'Spoqa Han Sans', Arial, sans-serif";
+        ctx.save();
+        ctx.shadowColor = "#333";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "#425ce2";
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.strokeText(fallingWords[i].word, fallingWords[i].x, fallingWords[i].y + 32);
+        ctx.fillText(fallingWords[i].word, fallingWords[i].x, fallingWords[i].y + 32);
+        ctx.restore();
+
+        fallingWords[i].y += 2;
+
+        // 바구니에 닿으면 카운트
+        if (
+          fallingWords[i].y + 30 >= basketY &&
+          fallingWords[i].x + 44 > basketX &&
+          fallingWords[i].x < basketX + basketW
+        ) {
+          wordCounts[fallingWords[i].word]++;
+          fallingWords[i].y = -9999;
+        } else if (fallingWords[i].y > canvas.height) {
+          fallingWords[i].y = -9999;
+        }
+      }
+      // 화면 밖 단어 필터링
+      var arr = [];
+      for (var i = 0; i < fallingWords.length; i++) {
+        if (fallingWords[i].y > -50 && fallingWords[i].y < canvas.height + 100) arr.push(fallingWords[i]);
+      }
+      fallingWords = arr;
+
+      // 단어 생성
+      if (Date.now() % 7 < 3 || fallingWords.length < 2) addWord();
+
+      // 점수
+      var s = 0;
+      for (var k in wordCounts) s += wordCounts[k];
+      ctx.font = "18px Spoqa Han Sans, Arial";
+      ctx.fillStyle = "#222";
+      ctx.fillText("받은 단어 수: " + s, 18, 32);
+
+      // 타이머
+      var elapsed = (Date.now() - startTime) / 1000;
+      var remain = Math.max(0, Math.floor(totalTime - elapsed));
+      document.getElementById("timer").innerText = "남은 시간: " + remain + "초";
+      if (remain <= 0) {
+        endGame();
+        return;
+      }
+      requestAnimationFrame(drawGame);
+    }
+
+    function endGame() {
+      isGameOver = true;
+      var majorScores = [];
+      for (var j = 0; j < majors.length; j++) {
+        var cnt = 0;
+        for (var k = 0; k < majors[j].w.length; k++) cnt += wordCounts[majors[j].w[k]];
+        majorScores.push({ text: majors[j].t, count: cnt });
+      }
+      majorScores.sort(function (a, b) {
+        return b.count - a.count;
+      });
+      var resultText = "결과: ";
+      if (majorScores[0].count === 0) resultText += "조건에 부합한 단어가 없습니다.";
+      else resultText += majorScores[0].text + " (" + majorScores[0].count + "개)";
+      document.getElementById("result").innerText = resultText;
+    }
+
+    function startGame() {
+      startTime = Date.now();
+      isGameOver = false;
+      for (var i = 0; i < words.length; i++) wordCounts[words[i]] = 0;
+      fallingWords = [];
+      document.getElementById("result").innerText = "";
+      drawGame();
+    }
+
+    document.getElementById("startBtn").addEventListener("click", function () {
+      startGame();
+    });
+  </script>
+</body>
+</html>
